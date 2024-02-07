@@ -50,7 +50,7 @@ def main ( ):
 
     trail = Trail.Trail();
 
-    cc = "forwardChecking"
+    cc = "forwardChecking" # Marked as changed
     if file == "":
         sudokudata = SudokuBoard.SudokuBoard( 3, 3, 7 )
         print(sudokudata)
