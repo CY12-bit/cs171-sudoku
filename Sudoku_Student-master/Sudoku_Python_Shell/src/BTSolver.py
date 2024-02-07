@@ -48,7 +48,19 @@ class BTSolver:
                 The bool is true if assignment is consistent, false otherwise.
     """
     def forwardChecking ( self ):
-        return ({},False)
+        # Get the latest variable with the assigned value
+        v = self.trail.trailStack[-1][0]
+        neighbors = self.network.getNeighborsOfVariable(v)
+        modified = dict()
+        for neigh in neighbors:
+            if v.getAssignment() in neigh.getValues():
+                neigh.removeValueFromDomain(v.getAssignment())
+                modified[neigh] = neigh.getDomain()
+        
+        
+        # Assign the value (IN THIS FUNCTION?) to selected variable and appropriately remove the value for neighbors' domains
+        # Check each neighbor if they are consistent. If not, return false with modified variables. If so, return true with the modified variables
+        return (modified,self.assignmentsCheck())
 
     # =================================================================
 	# Arc Consistency
@@ -157,6 +169,7 @@ class BTSolver:
         Return: A list of v's domain sorted by the LCV heuristic
                 The LCV is first and the MCV is last
     """
+    # Colin will take this one
     def getValuesLCVOrder ( self, v ):
         return None
 
