@@ -50,6 +50,7 @@ def main ( ):
 
     trail = Trail.Trail();
 
+    cc = "forwardChecking"
     if file == "":
         sudokudata = SudokuBoard.SudokuBoard( 3, 3, 7 )
         print(sudokudata)

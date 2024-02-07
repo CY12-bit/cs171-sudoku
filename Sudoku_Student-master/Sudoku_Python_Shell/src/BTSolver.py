@@ -48,7 +48,12 @@ class BTSolver:
                 The bool is true if assignment is consistent, false otherwise.
     """
     def forwardChecking ( self ):
+        
         # Get the latest variable with the assigned value
+        
+        if (self.trail.size() == 0):
+            return ({},self.assignmentsCheck())
+
         v = self.trail.trailStack[-1][0]
         neighbors = self.network.getNeighborsOfVariable(v)
         modified = dict()
@@ -219,7 +224,7 @@ class BTSolver:
                 new_start_time = time_left - elapsed_time
                 if self.solve(time_left=new_start_time) == -1:
                     return -1
-                
+            
             # If this assignment succeeded, return
             if self.hassolution:
                 return 0
