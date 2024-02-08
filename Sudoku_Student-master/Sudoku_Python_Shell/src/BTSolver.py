@@ -54,14 +54,14 @@ class BTSolver:
         if (self.trail.size() == 0):
             return ({},self.assignmentsCheck())
 
-        v = self.trail.trailStack[-1][0]
+        v = self.trail.trailStack[self.trail.trailMarker[-1]][0]
         neighbors = self.network.getNeighborsOfVariable(v)
         modified = dict()
         for neigh in neighbors:
             if v.getAssignment() in neigh.getValues():
+                self.trail.push( neigh )
                 neigh.removeValueFromDomain(v.getAssignment())
                 modified[neigh] = neigh.getDomain()
-        
         
         # Assign the value (IN THIS FUNCTION?) to selected variable and appropriately remove the value for neighbors' domains
         # Check each neighbor if they are consistent. If not, return false with modified variables. If so, return true with the modified variables
@@ -201,7 +201,7 @@ class BTSolver:
 
         # Variable Selection
         v = self.selectNextVariable()
-
+        # print(v)
         # check if the assigment is complete
         if ( v == None ):
             # Success
@@ -236,6 +236,12 @@ class BTSolver:
 
     def checkConsistency ( self ):
         if self.cChecks == "forwardChecking":
+            # User Changes
+            temp = self.forwardChecking()
+            if temp[1] == False:
+                print("Failed", [(v.getName(),v.getAssignment()) for v,_ in self.trail.trailStack])
+            else:    
+                print("True", [(v.getName(),v.getAssignment()) for v,_ in self.trail.trailStack])
             return self.forwardChecking()[1]
 
         if self.cChecks == "norvigCheck":
