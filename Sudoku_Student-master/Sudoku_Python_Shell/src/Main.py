@@ -52,7 +52,7 @@ def main ( ):
 
     cc = "forwardChecking" # Marked as changed
     if file == "":
-        sudokudata = SudokuBoard.SudokuBoard( 4, 4, 11 ) # Original is 7
+        sudokudata = SudokuBoard.SudokuBoard( 3, 3, 7 ) # Original is 7
         print(sudokudata)
 
         solver = BTSolver.BTSolver( sudokudata, trail, val_sh, var_sh, cc )

@@ -48,32 +48,43 @@ class BTSolver:
                 The bool is true if assignment is consistent, false otherwise.
     """
     def forwardChecking ( self ):
-        # if nothing is assigned, then let's check the board for consistency
-        if (self.trail.size() == 0): return ({}, self.network.isConsistent())
+        def checkNeighborConsistency(v):
+            neighbors = self.network.getNeighborsOfVariable(v)
+            modified = dict()
+            for neigh in neighbors:
+                # If the neighbor does contain our variable
+                if neigh.getDomain().contains(v):
+                    # If the value is already assigned to this neighbor, that's inconsistent
+                    if neigh.isAssigned() == True: return (modified,False)
+                    
+                    # If the domain is somehow empty (never should happen), then inconsistent
+                    elif neigh.getDomain().size() == 0: return (modified, False)
+                    
+                    # Otherwise, if the neighbor hasn't been assigned and has a domain of variable to choose from
+                    else:
+                        # Let's add the neighbor and their original domain to the trail for backtracking
+                        # self.trail.placeTrailMarker()
+                            # If we add self.trail.placeTrailMaker(), then it will do unnecessary backtracking when a variable and neighbor have the same value assignment
+                            # If we don't add self.trail.placeTrailMaker(), then there will be a lot of undos. Even though there is a potential for 
+                        self.trail.push(neigh)
+                        neigh.removeValueFromDomain(v.getAssignment())
+                        modified[neigh] = neigh.getDomain()
+            
+            return (modified, self.network.isConsistent())
+
+        # if nothing is assigned, assuming there is existing assigned variables on the board
+        # we do forward checking for those assigned variables
+        if (self.trail.size() == 0): 
+            variables = self.network.getVariables()
+            for var in variables:
+                if var.isAssigned():
+                    checkNeighborConsistency(var)
+            return ({},self.network.isConsistent()) # Probably will need to change
         
         # Grab the most recently assigned variable
-        v = self.trail.trailStack[self.trail.trailMarker[-1]][0]
-        
-        neighbors = self.network.getNeighborsOfVariable(v)
-        modified = dict()
-        for neigh in neighbors:
-            # If the neighbor does contain our variable
-            if neigh.getDomain().contains(v):
-                # If the value is already assigned to this neighbor, that's inconsistent
-                if neigh.isAssigned() == True: return (modified,False)
-                
-                # If the domain is somehow empty (never should happen), then inconsistent
-                elif neigh.getDomain().size() == 0: return (modified, False)
-                
-                # Otherwise, if the neighbor hasn't been assigned and has a domain of variable to choose from
-                else:
-                    # Let's add the neighbor and their original domain to the trail for backtracking
-                    self.trail.placeTrailMarker() # Unsure if I should include this because this will make it very depth-first search
-                    self.trail.push(neigh)
-                    neigh.removeValueFromDomain(v.getAssignment())
-                    modified[neigh] = neigh.getDomain()
-
-        return (modified, self.network.isConsistent())
+        else:
+            v = self.trail.trailStack[self.trail.trailMarker[-1]][0]
+            return checkNeighborConsistency(v)
         
 
     # =================================================================
