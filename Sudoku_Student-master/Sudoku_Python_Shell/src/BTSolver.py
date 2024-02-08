@@ -55,6 +55,7 @@ class BTSolver:
             return ({},self.assignmentsCheck())
 
         v = self.trail.trailStack[self.trail.trailMarker[-1]][0]
+        print("Forward:",v)
         constraintCheck = self.assignmentsCheck()
         if constraintCheck:
             neighbors = self.network.getNeighborsOfVariable(v)
@@ -64,9 +65,8 @@ class BTSolver:
                     # Somehow need to reinitalize the domain when backtracking is involved. So if V3 = 3 and V4's domain is {4} annd if if doesn't work, it needs
                     # to change so V4 = 4 and V3 is {3}. However, in the current iteration, it will be V3 = {} or V3 = {4}.
                     if (neigh.isAssigned == False):
-                        temp_neigh = neigh
                         self.trail.placeTrailMarker()
-                        self.trail.push(temp_neigh)
+                    self.trail.push(neigh)
                     neigh.removeValueFromDomain(v.getAssignment())
                     modified[neigh] = neigh.getDomain()
                     
