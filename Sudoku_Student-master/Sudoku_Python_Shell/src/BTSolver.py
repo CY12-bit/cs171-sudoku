@@ -48,30 +48,33 @@ class BTSolver:
                 The bool is true if assignment is consistent, false otherwise.
     """
     def forwardChecking ( self ):
+        # if nothing is assigned, then let's check the board for consistency
+        if (self.trail.size() == 0): return ({}, self.network.isConsistent())
         
-        # Get the latest variable with the assigned value
-        
-        if (self.trail.size() == 0):
-            return ({},self.assignmentsCheck())
-
+        # Grab the most recently assigned variable
         v = self.trail.trailStack[self.trail.trailMarker[-1]][0]
-        constraintCheck = self.assignmentsCheck()
-        if constraintCheck:
-            neighbors = self.network.getNeighborsOfVariable(v)
-            modified = dict()
-            for neigh in neighbors:
-                if v.getAssignment() in neigh.getValues():
-                    if (neigh.isAssigned == False):
-                        self.trail.placeTrailMarker()
+        
+        neighbors = self.network.getNeighborsOfVariable(v)
+        modified = dict()
+        for neigh in neighbors:
+            # If the neighbor does contain our variable
+            if neigh.getDomain().contains(v):
+                # If the value is already assigned to this neighbor, that's inconsistent
+                if neigh.isAssigned() == True: return (modified,False)
+                
+                # If the domain is somehow empty (never should happen), then inconsistent
+                elif neigh.getDomain().size() == 0: return (modified, False)
+                
+                # Otherwise, if the neighbor hasn't been assigned and has a domain of variable to choose from
+                else:
+                    # Let's add the neighbor and their original domain to the trail for backtracking
+                    self.trail.placeTrailMarker() # Unsure if I should include this because this will make it very depth-first search
                     self.trail.push(neigh)
                     neigh.removeValueFromDomain(v.getAssignment())
                     modified[neigh] = neigh.getDomain()
-                    
-            return (modified,True)
+
+        return (modified, self.network.isConsistent())
         
-        # Assign the value (IN THIS FUNCTION?) to selected variable and appropriately remove the value for neighbors' domains
-        # Check each neighbor if they are consistent. If not, return false with modified variables. If so, return true with the modified variables
-        return ({},False)
 
     # =================================================================
 	# Arc Consistency
