@@ -55,17 +55,26 @@ class BTSolver:
             return ({},self.assignmentsCheck())
 
         v = self.trail.trailStack[self.trail.trailMarker[-1]][0]
-        neighbors = self.network.getNeighborsOfVariable(v)
-        modified = dict()
-        for neigh in neighbors:
-            if v.getAssignment() in neigh.getValues():
-                self.trail.push( neigh )
-                neigh.removeValueFromDomain(v.getAssignment())
-                modified[neigh] = neigh.getDomain()
+        constraintCheck = self.assignmentsCheck()
+        if constraintCheck:
+            neighbors = self.network.getNeighborsOfVariable(v)
+            modified = dict()
+            for neigh in neighbors:
+                if v.getAssignment() in neigh.getValues():
+                    # Somehow need to reinitalize the domain when backtracking is involved. So if V3 = 3 and V4's domain is {4} annd if if doesn't work, it needs
+                    # to change so V4 = 4 and V3 is {3}. However, in the current iteration, it will be V3 = {} or V3 = {4}.
+                    if (neigh.isAssigned == False):
+                        temp_neigh = neigh
+                        self.trail.placeTrailMarker()
+                        self.trail.push(temp_neigh)
+                    neigh.removeValueFromDomain(v.getAssignment())
+                    modified[neigh] = neigh.getDomain()
+                    
+            return (modified,True)
         
         # Assign the value (IN THIS FUNCTION?) to selected variable and appropriately remove the value for neighbors' domains
         # Check each neighbor if they are consistent. If not, return false with modified variables. If so, return true with the modified variables
-        return (modified,self.assignmentsCheck())
+        return ({},False)
 
     # =================================================================
 	# Arc Consistency
@@ -201,7 +210,7 @@ class BTSolver:
 
         # Variable Selection
         v = self.selectNextVariable()
-        # print(v)
+        print(v)
         # check if the assigment is complete
         if ( v == None ):
             # Success
@@ -239,9 +248,9 @@ class BTSolver:
             # User Changes
             temp = self.forwardChecking()
             if temp[1] == False:
-                print("Failed", [(v.getName(),v.getAssignment()) for v,_ in self.trail.trailStack])
+                print("Failed", [(v.getName(),v.getValues()) for v,_ in self.trail.trailStack])
             else:    
-                print("True", [(v.getName(),v.getAssignment()) for v,_ in self.trail.trailStack])
+                print("True", [(v.getName(),v.getValues()) for v,_ in self.trail.trailStack])
             return self.forwardChecking()[1]
 
         if self.cChecks == "norvigCheck":
