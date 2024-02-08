@@ -55,15 +55,12 @@ class BTSolver:
             return ({},self.assignmentsCheck())
 
         v = self.trail.trailStack[self.trail.trailMarker[-1]][0]
-        print("Forward:",v)
         constraintCheck = self.assignmentsCheck()
         if constraintCheck:
             neighbors = self.network.getNeighborsOfVariable(v)
             modified = dict()
             for neigh in neighbors:
                 if v.getAssignment() in neigh.getValues():
-                    # Somehow need to reinitalize the domain when backtracking is involved. So if V3 = 3 and V4's domain is {4} annd if if doesn't work, it needs
-                    # to change so V4 = 4 and V3 is {3}. However, in the current iteration, it will be V3 = {} or V3 = {4}.
                     if (neigh.isAssigned == False):
                         self.trail.placeTrailMarker()
                     self.trail.push(neigh)
@@ -210,7 +207,7 @@ class BTSolver:
 
         # Variable Selection
         v = self.selectNextVariable()
-        print(v)
+        # print(v)
         # check if the assigment is complete
         if ( v == None ):
             # Success
@@ -247,10 +244,10 @@ class BTSolver:
         if self.cChecks == "forwardChecking":
             # User Changes
             temp = self.forwardChecking()
-            if temp[1] == False:
-                print("Failed", [(v.getName(),v.getValues()) for v,_ in self.trail.trailStack])
-            else:    
-                print("True", [(v.getName(),v.getValues()) for v,_ in self.trail.trailStack])
+            #if temp[1] == False:
+            #    print("Failed", [(v.getName(),v.getValues()) for v,_ in self.trail.trailStack])
+            #else:    
+            #    print("True", [(v.getName(),v.getValues()) for v,_ in self.trail.trailStack])
             return self.forwardChecking()[1]
 
         if self.cChecks == "norvigCheck":
