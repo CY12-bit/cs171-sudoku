@@ -63,23 +63,26 @@ class BTSolver:
                     # Otherwise, if the neighbor hasn't been assigned and has a domain of variable to choose from
                     else:
                         # Let's add the neighbor and their original domain to the trail for backtracking
-                        # self.trail.placeTrailMarker()
-                            # If we add self.trail.placeTrailMaker(), then it will do unnecessary backtracking when a variable and neighbor have the same value assignment
-                            # If we don't add self.trail.placeTrailMaker(), then there will be a lot of undos. Even though there is a potential for 
                         self.trail.push(neigh)
                         neigh.removeValueFromDomain(v.getAssignment())
                         modified[neigh] = neigh.getDomain()
             
-            return (modified, self.network.isConsistent())
+            return (modified, self.assignmentsCheck())
 
         # if nothing is assigned, assuming there is existing assigned variables on the board
         # we do forward checking for those assigned variables
         if (self.trail.size() == 0): 
             variables = self.network.getVariables()
-            for var in variables:
-                if var.isAssigned():
-                    checkNeighborConsistency(var)
-            return ({},self.network.isConsistent()) # Probably will need to change
+            modified = dict()
+            board_consistency = True
+            i = 0
+            while board_consistency and i < len(variables):
+                if variables[i].isAssigned():
+                    forwardCheckResults = checkNeighborConsistency(variables[i])
+                    # modified.update(forwardCheckResults[0]) Not sure if I should include this because it's never used
+                    board_consistency = forwardCheckResults[1]
+                i+=1
+            return (modified,board_consistency) # Probably will need to change
         
         # Grab the most recently assigned variable
         else:
@@ -256,12 +259,6 @@ class BTSolver:
 
     def checkConsistency ( self ):
         if self.cChecks == "forwardChecking":
-            # User Changes
-            temp = self.forwardChecking()
-            #if temp[1] == False:
-            #    print("Failed", [(v.getName(),v.getValues()) for v,_ in self.trail.trailStack])
-            #else:    
-            #    print("True", [(v.getName(),v.getValues()) for v,_ in self.trail.trailStack])
             return self.forwardChecking()[1]
 
         if self.cChecks == "norvigCheck":
