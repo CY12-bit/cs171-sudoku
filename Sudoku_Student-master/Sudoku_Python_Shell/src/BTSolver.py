@@ -57,15 +57,13 @@ class BTSolver:
                     # If the value is already assigned to this neighbor, that's inconsistent
                     if neigh.isAssigned() == True: return (modified,False)
                     
-                    # If the domain is somehow empty (never should happen), then inconsistent
-                    elif neigh.getDomain().size() == 0: return (modified, False)
-                    
                     # Otherwise, if the neighbor hasn't been assigned and has a domain of variable to choose from
                     else:
                         # Let's add the neighbor and their original domain to the trail for backtracking
                         self.trail.push(neigh)
                         neigh.removeValueFromDomain(v.getAssignment())
                         modified[neigh] = neigh.getDomain()
+                        if modified[neigh].size() == 0: return (modified, False)
             
             return (modified, self.assignmentsCheck())
 
@@ -79,7 +77,6 @@ class BTSolver:
             while board_consistency and i < len(variables):
                 if variables[i].isAssigned():
                     forwardCheckResults = checkNeighborConsistency(variables[i])
-                    # modified.update(forwardCheckResults[0]) Not sure if I should include this because it's never used
                     board_consistency = forwardCheckResults[1]
                 i+=1
             return (modified,board_consistency) # Probably will need to change
