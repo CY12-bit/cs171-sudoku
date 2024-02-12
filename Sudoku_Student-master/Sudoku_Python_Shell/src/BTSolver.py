@@ -49,9 +49,6 @@ class BTSolver:
     """
     def forwardChecking(self):
         def checkNeighborConsistency(v):
-            if not v.isAssigned():
-                return ({}, True)  # Only proceed if v is assigned
-            
             assignment = v.getAssignment()
             neighbors = self.network.getNeighborsOfVariable(v)
             modified = {}
@@ -60,25 +57,32 @@ class BTSolver:
                     continue  # Skip if neighbor is already assigned or doesn't contain the value
                 
                 # Optimization: Check if domain modification is necessary before pushing to the trail
-                if neigh.getDomain().size() > 1:
+                else:
                     self.trail.push(neigh)  # Save the current state before modification
                     neigh.removeValueFromDomain(assignment)
                     modified[neigh] = neigh.getDomain()
-                    if neigh.getDomain().isEmpty():
-                        return (modified, False)  # Inconsistent if any neighbor has no remaining values
+                    if neigh.getDomain().isEmpty(): return (modified, False)  # Inconsistent if any neighbor has no remaining values
             
-            return (modified, True)
+            return (modified, self.assignmentsCheck())
 
         # Process only the last assigned variable to minimize work
         if self.trail.size() > 0:
             lastAssignedVarIndex = self.trail.trailMarker[-1]
             lastAssignedVar = self.trail.trailStack[lastAssignedVarIndex][0]
             return checkNeighborConsistency(lastAssignedVar)
-        
+        else:
+            variables = self.network.getVariables()
+            modified = dict()
+            board_consistent = True
+            i = 0
+            while board_consistent and i < len(variables):
+                if variables[i].isAssigned():
+                    forwardCheckResults = checkNeighborConsistency(variables[i])
+                    modified.update(forwardCheckResults[0])
+                    board_consistent = forwardCheckResults[1]
+                i+=1
         # If no variables have been assigned yet, there's nothing to do
-        return ({}, True)
-
-        
+        return (modified, board_consistent)        
 
     # =================================================================
 	# Arc Consistency
