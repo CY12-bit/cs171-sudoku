@@ -61,7 +61,7 @@ class BTSolver:
                     self.trail.push(neigh)  # Save the current state before modification
                     neigh.removeValueFromDomain(assignment)
                     modified[neigh] = neigh.getDomain()
-                    if neigh.getDomain().isEmpty(): return (modified, False)  # Inconsistent if any neighbor has no remaining values
+                    if modified[neigh].isEmpty(): return (modified, False)  # Inconsistent if any neighbor has no remaining values
             
             return (modified, self.assignmentsCheck())
 
