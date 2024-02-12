@@ -47,48 +47,42 @@ class BTSolver:
         Return: a tuple of a dictionary and a bool. The dictionary contains all MODIFIED variables, mapped to their MODIFIED domain.
                 The bool is true if assignment is consistent, false otherwise.
     """
-    def forwardChecking ( self ):
+    def forwardChecking(self):
         def checkNeighborConsistency(v):
+            assignment = v.getAssignment()
             neighbors = self.network.getNeighborsOfVariable(v)
-            modified = dict()
+            modified = {}
             for neigh in neighbors:
-                # If the neighbor does contain our variable
-                if neigh.getDomain().contains(v):
-                    # If the value is already assigned to this neighbor, that's inconsistent
-                    if neigh.isAssigned() == True: return (modified,False)
-                    
-                    # If the domain is somehow empty (never should happen), then inconsistent
-                    elif neigh.getDomain().size() == 0: return (modified, False)
-                    
-                    # Otherwise, if the neighbor hasn't been assigned and has a domain of variable to choose from
-                    else:
-                        # Let's add the neighbor and their original domain to the trail for backtracking
-                        self.trail.push(neigh)
-                        neigh.removeValueFromDomain(v.getAssignment())
-                        modified[neigh] = neigh.getDomain()
+                if neigh.isAssigned() or not neigh.getDomain().contains(assignment):
+                    continue  # Skip if neighbor is already assigned or doesn't contain the value
+                
+                # Optimization: Check if domain modification is necessary before pushing to the trail
+                else:
+                    self.trail.push(neigh)  # Save the current state before modification
+                    neigh.removeValueFromDomain(assignment)
+                    modified[neigh] = neigh.getDomain()
+                    if neigh.getDomain().isEmpty(): return (modified, False)  # Inconsistent if any neighbor has no remaining values
             
             return (modified, self.assignmentsCheck())
 
-        # if nothing is assigned, assuming there is existing assigned variables on the board
-        # we do forward checking for those assigned variables
-        if (self.trail.size() == 0): 
+        # Process only the last assigned variable to minimize work
+        if self.trail.size() > 0:
+            lastAssignedVarIndex = self.trail.trailMarker[-1]
+            lastAssignedVar = self.trail.trailStack[lastAssignedVarIndex][0]
+            return checkNeighborConsistency(lastAssignedVar)
+        else:
             variables = self.network.getVariables()
             modified = dict()
-            board_consistency = True
+            board_consistent = True
             i = 0
-            while board_consistency and i < len(variables):
+            while board_consistent and i < len(variables):
                 if variables[i].isAssigned():
                     forwardCheckResults = checkNeighborConsistency(variables[i])
-                    # modified.update(forwardCheckResults[0]) Not sure if I should include this because it's never used
-                    board_consistency = forwardCheckResults[1]
+                    modified.update(forwardCheckResults[0])
+                    board_consistent = forwardCheckResults[1]
                 i+=1
-            return (modified,board_consistency) # Probably will need to change
-        
-        # Grab the most recently assigned variable
-        else:
-            v = self.trail.trailStack[self.trail.trailMarker[-1]][0]
-            return checkNeighborConsistency(v)
-        
+        # If no variables have been assigned yet, there's nothing to do
+        return (modified, board_consistent)        
 
     # =================================================================
 	# Arc Consistency
