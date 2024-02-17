@@ -70,19 +70,18 @@ class BTSolver:
             lastAssignedVarIndex = self.trail.trailMarker[-1]
             lastAssignedVar = self.trail.trailStack[lastAssignedVarIndex][0]
             return checkNeighborConsistency(lastAssignedVar)
-        else:
+        else: # If it's the initalized board, then we proprogate constraints from initalized variables
             variables = self.network.getVariables()
-            modified = dict()
+            # modified = dict()
             board_consistent = True
             i = 0
             while board_consistent and i < len(variables):
                 if variables[i].isAssigned():
                     forwardCheckResults = checkNeighborConsistency(variables[i])
-                    modified.update(forwardCheckResults[0])
+                    # modified.update(forwardCheckResults[0])
                     board_consistent = forwardCheckResults[1]
                 i+=1
-        # If no variables have been assigned yet, there's nothing to do
-        return (modified, board_consistent)        
+            return ({}, board_consistent)        
 
     # =================================================================
 	# Arc Consistency
