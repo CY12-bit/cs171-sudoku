@@ -150,8 +150,11 @@ class BTSolver:
         Return: The unassigned variable with the smallest domain
     """
     def getMRV ( self ):
-        return None
-
+        min_var = None 
+        for v in self.network.variables:
+            if v.isAssigned() == False and (min_var == None or min_var.size() > v.size()):
+                min_var = v
+        return min_var
     """
         Part 2 TODO: Implement the Minimum Remaining Value Heuristic
                        with Degree Heuristic as a Tie Breaker
@@ -192,7 +195,12 @@ class BTSolver:
     """
     # Colin will take this one
     def getValuesLCVOrder ( self, v ):
-        return None
+        def returnNeighsContains(val, neighs:list):
+            return sum(n.getDomain().contains(val) for n in neighs)
+        values = v.domain.values
+        neighs = self.network.getNeighborsOfVariable(v)
+        return sorted(values, key = lambda x: returnNeighsContains(x,neighs))
+
 
     """
          Optional TODO: Implement your own advanced Value Heuristic
