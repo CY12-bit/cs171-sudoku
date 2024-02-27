@@ -152,7 +152,7 @@ class BTSolver:
     def getMRV ( self ):
         min_var = None 
         for v in self.network.variables:
-            if v.isAssigned() == False and (min_var == None or min_var.size() > v.size()):
+            if not v.isAssigned() and (min_var == None or min_var.size() > v.size()):
                 min_var = v
         return min_var
     """
@@ -164,7 +164,17 @@ class BTSolver:
                 If there is only one variable, return the list of size 1 containing that variable.
     """
     def MRVwithTieBreaker ( self ):
-        return None
+        min_var = list()
+        for v in self.network.variables:
+            if not v.isAssigned():
+                if len(min_var) == 0:
+                    min_var.append(v)
+                elif min_var[-1].size() > v.size():
+                    min_var.clear()
+                    min_var.append(v)
+                elif min_var[-1].size() == v.size():
+                    min_var.append(v)
+        return sorted(min_var, key = lambda x : sum(1 if n.isAssigned() == False else 0 for n in self.network.getNeighborsOfVariable(x))) if len(min_var) != 0 else [None]
 
     """
          Optional TODO: Implement your own advanced Variable Heuristic
