@@ -22,6 +22,9 @@ class BTSolver:
         self.varHeuristics = var_sh
         self.valHeuristics = val_sh
         self.cChecks = cc
+        
+        # Added by Colin
+        self.lastAssigned = None
 
     # ==================================================================
     # Consistency Checks
@@ -64,25 +67,22 @@ class BTSolver:
                     if modified[neigh].isEmpty(): return (modified, False)  # Inconsistent if any neighbor has no remaining values
             
             return (modified, self.assignmentsCheck())
-
-        # Process only the last assigned variable to minimize work
-        if self.trail.size() > 0:
-            lastAssignedVarIndex = self.trail.trailMarker[-1]
-            lastAssignedVar = self.trail.trailStack[lastAssignedVarIndex][0]
-            return checkNeighborConsistency(lastAssignedVar)
-        else: # If it's the initalized board, then we proprogate constraints from initalized variables
+    
+        # If we haven't assigned any variables yet (so only have initialized variables on board)
+        if self.lastAssigned == None:
             variables = self.network.getVariables()
-            # modified = dict()
             board_consistent = True
             i = 0
             while board_consistent and i < len(variables):
                 if variables[i].isAssigned():
                     forwardCheckResults = checkNeighborConsistency(variables[i])
-                    # modified.update(forwardCheckResults[0])
                     board_consistent = forwardCheckResults[1]
                 i+=1
-            return ({}, board_consistent)        
-
+            return ({}, board_consistent)
+        # Otherwise, let's proprogate the constraints for the last assigned variable
+        else:
+            return checkNeighborConsistency(self.lastAssigned)
+           
     # =================================================================
 	# Arc Consistency
 	# =================================================================
@@ -252,6 +252,9 @@ class BTSolver:
             # Assign the value
             v.assignValue( i )
 
+            # Added by Colin
+            self.lastAssigned = v
+
             # Propagate constraints, check consistency, recur
             if self.checkConsistency():
                 elapsed_time = time.time() - start_time 
@@ -259,6 +262,9 @@ class BTSolver:
                 if self.solve(time_left=new_start_time) == -1:
                     return -1
             
+            # Added by Colin
+            self.lastAssigned = None
+
             # If this assignment succeeded, return
             if self.hassolution:
                 return 0
