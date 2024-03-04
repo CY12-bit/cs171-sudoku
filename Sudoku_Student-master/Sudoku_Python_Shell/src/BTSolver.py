@@ -120,7 +120,21 @@ class BTSolver:
                 The bool is true if assignment is consistent, false otherwise.
     """
     def norvigCheck ( self ):
-        return ({}, False)
+        for c in self.network.constraints:
+            c_variables = list(c.vars)
+            while len(c_variables) != 0:
+                v = c_variables.pop(0)
+                if v.isAssigned():
+                    for neighbor in self.network.getNeighborsOfVariable(v):
+                        if neighbor.isChangeable and not neighbor.isAssigned() and neighbor.getDomain().contains(v.getAssignment()):
+                            self.trail.push(neighbor)  # Save the current state before modification
+                            neighbor.removeValueFromDomain(v.getAssignment())
+                            if neighbor.size() == 0: return ({},False)
+                            elif neighbor.domain.size() == 1: # Does that mean the constraint has only one place for this value?
+                                neighbor.assignValue(neighbor.domain.values[0])
+                                c_variables.append(neighbor)
+            if not c.isConsistent(): return ({},False) 
+        return ({}, True)
 
     """
          Optional TODO: Implement your own advanced Constraint Propagation
