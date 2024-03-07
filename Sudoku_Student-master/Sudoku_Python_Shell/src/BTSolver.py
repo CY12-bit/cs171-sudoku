@@ -139,17 +139,17 @@ class BTSolver:
                     if neigh.getDomain().isEmpty(): return ({}, False)
             return ({},self.assignmentsCheck())
 
-
         # If we just initialized the board
         if self.lastAssigned == None:
             for v in self.network.variables:
                 if v.isAssigned():
                     checkResults = removeValueFromNeighbors(v)
                     if checkResults[1] == False: return ({},False)
+        # If we assigned a value to a variable
         else:
             checkResults = removeValueFromNeighbors(self.lastAssigned)
             if checkResults[1] == False: return ({},False)
-        
+        # Now, we check all constraints to see if there's only one unassigned variable in each constraint
         for c in self.network.constraints:
             last_unassigned = returnOnlyUnassigned(c)
             # If there is only one un-assigned variable in the constraint
