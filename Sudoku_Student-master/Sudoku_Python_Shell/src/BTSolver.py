@@ -22,9 +22,7 @@ class BTSolver:
         self.varHeuristics = var_sh
         self.valHeuristics = val_sh
         self.cChecks = cc
-        
-        # Added by Colin
-        self.lastAssigned = None
+    
 
     # ==================================================================
     # Consistency Checks
@@ -51,37 +49,29 @@ class BTSolver:
                 The bool is true if assignment is consistent, false otherwise.
     """
     def forwardChecking(self):
-        def checkNeighborConsistency(v):
+        def removeValueFromNeighbors(v):
             assignment = v.getAssignment()
             neighbors = self.network.getNeighborsOfVariable(v)
-            modified = {}
             for neigh in neighbors:
-                if neigh.isAssigned() or not neigh.getDomain().contains(assignment):
-                    continue  # Skip if neighbor is already assigned or doesn't contain the value
-                
-                # Optimization: Check if domain modification is necessary before pushing to the trail
-                else:
-                    self.trail.push(neigh)  # Save the current state before modification
+                if not neigh.isAssigned() and neigh.getDomain().contains(assignment):
+                    self.trail.push(neigh)
                     neigh.removeValueFromDomain(assignment)
-                    modified[neigh] = neigh.getDomain()
-                    if modified[neigh].isEmpty(): return (modified, False)  # Inconsistent if any neighbor has no remaining values
+                    if neigh.getDomain().isEmpty(): return ({}, False)
+                    # Not sure if I should assign the neighbor if its domain size is 1
+                    # elif neigh.size() == 1:
+                    #    self.trail.push(neigh)
+                    #    neigh.assignValue(neigh.domain.values[0])
+                    #    neigh.setModified(True)
             
-            return (modified, self.assignmentsCheck())
-    
-        # If we haven't assigned any variables yet (so only have initialized variables on board)
-        if self.lastAssigned == None:
-            variables = self.network.getVariables()
-            board_consistent = True
-            i = 0
-            while board_consistent and i < len(variables):
-                if variables[i].isAssigned():
-                    forwardCheckResults = checkNeighborConsistency(variables[i])
-                    board_consistent = forwardCheckResults[1]
-                i+=1
-            return ({}, board_consistent)
-        # Otherwise, let's proprogate the constraints for the last assigned variable
-        else:
-            return checkNeighborConsistency(self.lastAssigned)
+            return ({},self.assignmentsCheck())
+        
+        for v in self.network.variables:
+            if v.isAssigned() and v.isModified(): # Very weird 'modified' status
+                checkResults = removeValueFromNeighbors(v)
+                v.setModified(False) # Very weird 'modified' status. So now not RECENTLY modified
+                if checkResults[1] == False: return ({},False)
+
+        return ({},True) 
            
     # =================================================================
 	# Arc Consistency
@@ -132,23 +122,23 @@ class BTSolver:
             assignment = v.getAssignment()
             neighbors = self.network.getNeighborsOfVariable(v)
             for neigh in neighbors:
-                if neigh.isAssigned() or not neigh.getDomain().contains(assignment): continue
-                else:
+                if not neigh.isAssigned() and neigh.getDomain().contains(assignment):
                     self.trail.push(neigh)
                     neigh.removeValueFromDomain(assignment)
                     if neigh.getDomain().isEmpty(): return ({}, False)
+                    # Not sure if I should assign the neighbor if its domain size is 1
+                    # elif neigh.size() == 1:
+                    #     self.trail.push(neigh)
+                    #     neigh.assignValue(neigh.domain.values[0])
+                    #     neigh.setModified(True)
             return ({},self.assignmentsCheck())
 
-        # If we just initialized the board
-        if self.lastAssigned == None:
-            for v in self.network.variables:
-                if v.isAssigned():
-                    checkResults = removeValueFromNeighbors(v)
-                    if checkResults[1] == False: return ({},False)
-        # If we assigned a value to a variable
-        else:
-            checkResults = removeValueFromNeighbors(self.lastAssigned)
-            if checkResults[1] == False: return ({},False)
+        for v in self.network.variables:
+            if v.isAssigned() and v.isModified(): # Very weird 'modified' status
+                checkResults = removeValueFromNeighbors(v)
+                v.setModified(False) # Very weird 'modified' status
+                if checkResults[1] == False: return ({},False)
+       
         # Now, we check all constraints to see if there's only one unassigned variable in each constraint
         for c in self.network.constraints:
             last_unassigned = returnOnlyUnassigned(c)
@@ -156,10 +146,9 @@ class BTSolver:
             if last_unassigned not in (None, False):
                 self.trail.push(last_unassigned)
                 last_unassigned.assignValue(last_unassigned.domain.values[0])
-                checkResults = removeValueFromNeighbors(last_unassigned)
-                if checkResults[1] == False: return ({},False)
-
-        return ({},True)
+                last_unassigned.setModified(True) # Very weird 'modified' status
+        
+        return ({},self.assignmentsCheck())
 
     """
          Optional TODO: Implement your own advanced Constraint Propagation
@@ -292,8 +281,6 @@ class BTSolver:
             # Assign the value
             v.assignValue( i )
 
-            # Added by Colin
-            self.lastAssigned = v
 
             # Propagate constraints, check consistency, recur
             if self.checkConsistency():
@@ -301,9 +288,6 @@ class BTSolver:
                 new_start_time = time_left - elapsed_time
                 if self.solve(time_left=new_start_time) == -1:
                     return -1
-            
-            # Added by Colin
-            self.lastAssigned = None
 
             # If this assignment succeeded, return
             if self.hassolution:
