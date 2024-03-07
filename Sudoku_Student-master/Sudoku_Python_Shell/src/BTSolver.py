@@ -58,6 +58,7 @@ class BTSolver:
                     neigh.removeValueFromDomain(assignment)
                     if neigh.getDomain().isEmpty(): return ({}, False)
                     # Not sure if I should assign the neighbor if its domain size is 1
+                    # If not needed, could legit just trackback to last assigned value (self.lastAssigned)
                     # elif neigh.size() == 1:
                     #    self.trail.push(neigh)
                     #    neigh.assignValue(neigh.domain.values[0])
