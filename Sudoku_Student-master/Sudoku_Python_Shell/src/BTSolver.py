@@ -120,21 +120,46 @@ class BTSolver:
                 The bool is true if assignment is consistent, false otherwise.
     """
     def norvigCheck ( self ):
-        for c in self.network.constraints:
-            c_variables = list(c.vars)
-            while len(c_variables) != 0:
-                v = c_variables.pop(0)
+        def returnOnlyUnassigned(c):
+            unassigned_v = None
+            for v in c.vars:
+                if not v.isAssigned():
+                    if unassigned_v == None:
+                        unassigned_v = v
+                    else: return False
+            return unassigned_v
+        def removeValueFromNeighbors(v):
+            assignment = v.getAssignment()
+            neighbors = self.network.getNeighborsOfVariable(v)
+            for neigh in neighbors:
+                if neigh.isAssigned() or not neigh.getDomain().contains(assignment): continue
+                else:
+                    self.trail.push(neigh)
+                    neigh.removeValueFromDomain(assignment)
+                    if neigh.getDomain().isEmpty(): return ({}, False)
+            return ({},self.assignmentsCheck())
+
+
+        # If we just initialized the board
+        if self.lastAssigned == None:
+            for v in self.network.variables:
                 if v.isAssigned():
-                    for neighbor in self.network.getNeighborsOfVariable(v):
-                        if neighbor.isChangeable and not neighbor.isAssigned() and neighbor.getDomain().contains(v.getAssignment()):
-                            self.trail.push(neighbor)  # Save the current state before modification
-                            neighbor.removeValueFromDomain(v.getAssignment())
-                            if neighbor.size() == 0: return ({},False)
-                            elif neighbor.domain.size() == 1: # Does that mean the constraint has only one place for this value?
-                                neighbor.assignValue(neighbor.domain.values[0])
-                                c_variables.append(neighbor)
-            if not c.isConsistent(): return ({},False) 
-        return ({}, True)
+                    checkResults = removeValueFromNeighbors(v)
+                    if checkResults[1] == False: return ({},False)
+        else:
+            checkResults = removeValueFromNeighbors(self.lastAssigned)
+            if checkResults[1] == False: return ({},False)
+        
+        for c in self.network.constraints:
+            last_unassigned = returnOnlyUnassigned(c)
+            # If there is only one un-assigned variable in the constraint
+            if last_unassigned not in (None, False):
+                self.trail.push(last_unassigned)
+                last_unassigned.assignValue(last_unassigned.domain.values[0])
+                checkResults = removeValueFromNeighbors(last_unassigned)
+                if checkResults[1] == False: return ({},False)
+
+        return ({},True)
 
     """
          Optional TODO: Implement your own advanced Constraint Propagation
@@ -143,6 +168,7 @@ class BTSolver:
          your program into a tournament.
      """
     def getTournCC ( self ):
+        # Exact Cover 
         return False
 
     # ==================================================================
