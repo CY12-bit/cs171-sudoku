@@ -158,8 +158,50 @@ class BTSolver:
          your program into a tournament.
      """
     def getTournCC ( self ):
-        # Exact Cover 
-        return False
+        """Implements Naked Pair Constraint Propagation along with Forward Checking"""
+        def removePairFromConstraint(c,naked_p,v_names):
+            for v in c.vars:
+                if not v.isAssigned() and not v.getName() in v_names:
+                    for p in naked_p:
+                        if v.getDomain().contains(p):
+                            self.trail.push(v)
+                            v.removeValueFromDomain(p)
+                            if v.getDomain().isEmpty(): return ({}, False)
+            return ({}, self.assignmentsCheck())
+        def removeValueFromNeighbors(v):
+            assignment = v.getAssignment()
+            neighbors = self.network.getNeighborsOfVariable(v)
+            for neigh in neighbors:
+                if not neigh.isAssigned() and neigh.getDomain().contains(assignment):
+                    self.trail.push(neigh)
+                    neigh.removeValueFromDomain(assignment)
+                    if neigh.getDomain().isEmpty(): return ({}, False)
+            return ({},self.assignmentsCheck())
+        
+        for c in self.network.constraints:
+            for v in c.vars:
+                if v.isAssigned() and v.isModified(): # Very weird 'modified' status
+                    checkResults = removeValueFromNeighbors(v)
+                    v.setModified(False) # Very weird 'modified' status
+                    if checkResults[1] == False: return ({},False)
+            
+            domain_pairs = dict()
+            iterate_v_list = list()
+            for v in c.vars:
+                if not v.isAssigned() and v.size() == 2:
+                    if tuple(v.getDomain().values) not in domain_pairs.keys():
+                        domain_pairs[tuple(v.getDomain().values)] = {v.getName()}
+                    elif len(domain_pairs[tuple(v.getDomain().values)]) <= 1:
+                        domain_pairs[tuple(v.getDomain().values)].add(v.getName())
+                    else: return ({}, False)
+                elif not v.isAssigned():
+                    iterate_v_list.append(v)
+            for naked_p, v_names in domain_pairs.items():
+                if len(v_names) == 2:
+                    constraint_pair_results = removePairFromConstraint(c,naked_p,v_names)
+                    if constraint_pair_results[1] == False: return ({},False)
+
+        return True
 
     # ==================================================================
     # Variable Selectors
@@ -204,7 +246,8 @@ class BTSolver:
                     min_var.append(v)
                 elif min_var[-1].size() == v.size():
                     min_var.append(v)
-        return sorted(min_var, key = lambda x : sum(1 if n.isAssigned() == False else 0 for n in self.network.getNeighborsOfVariable(x))) if len(min_var) != 0 else [None]
+        return sorted(min_var, \
+                      key = lambda x : sum(1 if not n.isAssigned() else 0 for n in self.network.getNeighborsOfVariable(x)), reverse=True) if len(min_var) != 0 else [None]
 
     """
          Optional TODO: Implement your own advanced Variable Heuristic
@@ -213,8 +256,28 @@ class BTSolver:
          your program into a tournament.
      """
     def getTournVar ( self ):
-        return None
+        def hasOverlap(v1,v2):
+            return len(set(v1.getDomain().values) & set(v2.getDomain().values)) > 0
+        # def returnOverlap(v1,v2):
+        #     return len(set(v1.getDomain().values) & set(v2.getDomain().values))
 
+        # MRV with Tie Breaker. But we also consider if the unassigned variable will even be affected by the variable.
+        min_var = list()
+        for v in self.network.variables:
+            if not v.isAssigned():
+                if len(min_var) == 0:
+                    min_var.append(v)
+                elif min_var[-1].size() > v.size():
+                    min_var.clear()
+                    min_var.append(v)
+                elif min_var[-1].size() == v.size():
+                    min_var.append(v)
+        
+        return sorted(min_var, \
+               key = lambda x : sum(1*hasOverlap(v,n) if not n.isAssigned() else 0 for n in self.network.getNeighborsOfVariable(x)), reverse=True)[0] if len(min_var) != 0 else None
+        # return sorted(min_var, \
+        #         key = lambda x : sum(1*returnOverlap(v,n) if not n.isAssigned() else 0 for n in self.network.getNeighborsOfVariable(x)), reverse=True)[0] if len(min_var) != 0 else None
+    
     # ==================================================================
     # Value Selectors
     # ==================================================================
@@ -233,7 +296,6 @@ class BTSolver:
         Return: A list of v's domain sorted by the LCV heuristic
                 The LCV is first and the MCV is last
     """
-    # Colin will take this one
     def getValuesLCVOrder ( self, v ):
         def returnNeighsContains(val, neighs:list):
             return sum(n.getDomain().contains(val) for n in neighs)
@@ -249,7 +311,19 @@ class BTSolver:
          your program into a tournament.
      """
     def getTournVal ( self, v ):
-        return None
+        """LCV but with a weighted sum"""
+        def returnNeighsContains(val, neighs:list):
+            weighted_sum = 0
+            for n in neighs:
+                if n.getDomain().contains(val):
+                    if n.isAssigned():
+                        weighted_sum += 5
+                    else:
+                        weighted_sum += 1
+            return weighted_sum
+        values = v.domain.values
+        neighs = self.network.getNeighborsOfVariable(v)
+        return sorted(values, key = lambda x: returnNeighsContains(x,neighs))
 
     # ==================================================================
     # Engine Functions
@@ -265,7 +339,7 @@ class BTSolver:
 
         # Variable Selection
         v = self.selectNextVariable()
-        # print(v)
+
         # check if the assigment is complete
         if ( v == None ):
             # Success
