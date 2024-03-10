@@ -111,14 +111,6 @@ class BTSolver:
                 The bool is true if assignment is consistent, false otherwise.
     """
     def norvigCheck ( self ):
-        def returnOnlyUnassigned(c):
-            unassigned_v = None
-            for v in c.vars:
-                if not v.isAssigned():
-                    if unassigned_v == None:
-                        unassigned_v = v
-                    else: return False
-            return unassigned_v
         def removeValueFromNeighbors(v):
             assignment = v.getAssignment()
             neighbors = self.network.getNeighborsOfVariable(v)
@@ -134,22 +126,27 @@ class BTSolver:
                     #     neigh.setModified(True)
             return ({},self.assignmentsCheck())
 
-        for v in self.network.variables:
-            if v.isAssigned() and v.isModified(): # Very weird 'modified' status
-                checkResults = removeValueFromNeighbors(v)
-                v.setModified(False) # Very weird 'modified' status
-                if checkResults[1] == False: return ({},False)
-       
-        # Now, we check all constraints to see if there's only one unassigned variable in each constraint
         for c in self.network.constraints:
-            last_unassigned = returnOnlyUnassigned(c)
-            # If there is only one un-assigned variable in the constraint
-            if last_unassigned not in (None, False):
-                self.trail.push(last_unassigned)
-                last_unassigned.assignValue(last_unassigned.domain.values[0])
-                last_unassigned.setModified(True) # Very weird 'modified' status
-        
+            for v in c.vars:
+                if v.isAssigned() and v.isModified():
+                    checkResults = removeValueFromNeighbors(v)
+                    v.setModified(False)
+                    if checkResults[1] == False: return ({},False)
+            val_to_var = dict()
+            for v in c.vars:
+                if not v.isAssigned():
+                    for val in v.getDomain().values:
+                        if val not in val_to_var.keys():
+                            val_to_var[val] = list()
+                        val_to_var[val].append(v)
+            for val, var_list in val_to_var.items():
+                if len(var_list) == 1:
+                    self.trail.push(var_list[0])
+                    var_list[0].assignValue(val)
+                    var_list[0].setModified(True)
+
         return ({},self.assignmentsCheck())
+            
 
     """
          Optional TODO: Implement your own advanced Constraint Propagation
@@ -200,8 +197,21 @@ class BTSolver:
                 if len(v_names) == 2:
                     constraint_pair_results = removePairFromConstraint(c,naked_p,v_names)
                     if constraint_pair_results[1] == False: return ({},False)
-
-        return True
+            
+            val_to_var = dict()
+            for v in c.vars:
+                if not v.isAssigned():
+                    for val in v.getDomain().values:
+                        if val not in val_to_var.keys():
+                            val_to_var[val] = list()
+                        val_to_var[val].append(v)
+            for val, var_list in val_to_var.items():
+                if len(var_list) == 1:
+                    self.trail.push(var_list[0])
+                    var_list[0].assignValue(val)
+                    var_list[0].setModified(True)
+                    
+        return self.assignmentsCheck()
 
     # ==================================================================
     # Variable Selectors
@@ -258,8 +268,6 @@ class BTSolver:
     def getTournVar ( self ):
         def hasOverlap(v1,v2):
             return len(set(v1.getDomain().values) & set(v2.getDomain().values)) > 0
-        # def returnOverlap(v1,v2):
-        #     return len(set(v1.getDomain().values) & set(v2.getDomain().values))
 
         # MRV with Tie Breaker. But we also consider if the unassigned variable will even be affected by the variable.
         min_var = list()
@@ -275,8 +283,6 @@ class BTSolver:
         
         return sorted(min_var, \
                key = lambda x : sum(1*hasOverlap(v,n) if not n.isAssigned() else 0 for n in self.network.getNeighborsOfVariable(x)), reverse=True)[0] if len(min_var) != 0 else None
-        # return sorted(min_var, \
-        #         key = lambda x : sum(1*returnOverlap(v,n) if not n.isAssigned() else 0 for n in self.network.getNeighborsOfVariable(x)), reverse=True)[0] if len(min_var) != 0 else None
     
     # ==================================================================
     # Value Selectors
