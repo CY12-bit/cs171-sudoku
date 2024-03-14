@@ -144,8 +144,9 @@ class BTSolver:
                     self.trail.push(var_list[0])
                     var_list[0].assignValue(val)
                     var_list[0].setModified(True)
+                    if not c.isConsistent(): return ({},False)
 
-        return ({},self.assignmentsCheck())
+        return ({},True)
             
 
     """
@@ -176,12 +177,13 @@ class BTSolver:
             return ({},self.assignmentsCheck())
         
         for c in self.network.constraints:
+            # Forward Checking
             for v in c.vars:
                 if v.isAssigned() and v.isModified(): # Very weird 'modified' status
                     checkResults = removeValueFromNeighbors(v)
                     v.setModified(False) # Very weird 'modified' status
-                    if checkResults[1] == False: return ({},False)
-            
+                    if checkResults[1] == False: return False
+            # Naked Pairs Checking
             domain_pairs = dict()
             iterate_v_list = list()
             for v in c.vars:
@@ -190,14 +192,15 @@ class BTSolver:
                         domain_pairs[tuple(v.getDomain().values)] = {v.getName()}
                     elif len(domain_pairs[tuple(v.getDomain().values)]) <= 1:
                         domain_pairs[tuple(v.getDomain().values)].add(v.getName())
-                    else: return ({}, False)
+                    else: return False
                 elif not v.isAssigned():
                     iterate_v_list.append(v)
             for naked_p, v_names in domain_pairs.items():
                 if len(v_names) == 2:
                     constraint_pair_results = removePairFromConstraint(c,naked_p,v_names)
-                    if constraint_pair_results[1] == False: return ({},False)
+                    if constraint_pair_results[1] == False: return False
             
+            # For values that have only one place to go in the constraint, you put in there in that variable. 
             val_to_var = dict()
             for v in c.vars:
                 if not v.isAssigned():
@@ -210,8 +213,9 @@ class BTSolver:
                     self.trail.push(var_list[0])
                     var_list[0].assignValue(val)
                     var_list[0].setModified(True)
+                    if not c.isConsistent(): return False
                     
-        return self.assignmentsCheck()
+        return True
 
     # ==================================================================
     # Variable Selectors
