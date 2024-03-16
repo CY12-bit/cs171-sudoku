@@ -132,20 +132,23 @@ class BTSolver:
                     checkResults = removeValueFromNeighbors(v)
                     v.setModified(False)
                     if checkResults[1] == False: return ({},False)
-            val_to_var = dict()
-            for v in c.vars:
-                if not v.isAssigned():
-                    for val in v.getDomain().values:
-                        if val not in val_to_var.keys():
-                            val_to_var[val] = list()
-                        val_to_var[val].append(v)
-            for val, var_list in val_to_var.items():
-                if len(var_list) == 1:
-                    self.trail.push(var_list[0])
-                    var_list[0].assignValue(val)
-                    var_list[0].setModified(True)
-                    if not c.isConsistent(): return ({},False)
+            
+            for val in range(1,self.gameboard.N+1):
+                pos_count = 0
+                temp_var = None
+                for var in c.vars:
+                    if var.getDomain().contains(val):
+                        pos_count += 1
+                        temp_var = var
+                        if pos_count == 2: break
+                if pos_count == 0: return ({},False)
+                elif pos_count == 1 and not temp_var.isAssigned(): 
+                    self.trail.push(temp_var)
+                    temp_var.assignValue(val)
+                    temp_var.setModified(True)
 
+            if not c.isConsistent(): return ({},False)
+ 
         return ({},True)
             
 
@@ -201,19 +204,21 @@ class BTSolver:
                     if constraint_pair_results[1] == False: return False
             
             # For values that have only one place to go in the constraint, you put in there in that variable. 
-            val_to_var = dict()
-            for v in c.vars:
-                if not v.isAssigned():
-                    for val in v.getDomain().values:
-                        if val not in val_to_var.keys():
-                            val_to_var[val] = list()
-                        val_to_var[val].append(v)
-            for val, var_list in val_to_var.items():
-                if len(var_list) == 1:
-                    self.trail.push(var_list[0])
-                    var_list[0].assignValue(val)
-                    var_list[0].setModified(True)
-                    if not c.isConsistent(): return False
+            for val in range(1,self.gameboard.N+1):
+                pos_count = 0
+                temp_var = None
+                for var in c.vars:
+                    if var.getDomain().contains(val):
+                        pos_count += 1
+                        temp_var = var
+                        if pos_count == 2: break
+                if pos_count == 0: return ({},False)
+                elif pos_count == 1 and not temp_var.isAssigned(): 
+                    self.trail.push(temp_var)
+                    temp_var.assignValue(val)
+                    temp_var.setModified(True)
+            
+            if not c.isConsistent(): return ({},False)
                     
         return True
 
